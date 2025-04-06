@@ -17,6 +17,8 @@ include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 include_directories(SYSTEM ${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
+enable_testing()
+
 # Main tool executable
 add_executable(keyword_extractor main.cpp)
 
@@ -30,6 +32,15 @@ target_link_libraries(keyword_extractor
     clangBasic
     clangASTMatchers
     ${LLVM_LIBS}
+)
+
+# 
+add_test(NAME RunKeywordTool
+    COMMAND bash -c "
+        echo 'int main() { return 0; }' > temp.cpp &&
+        ${CMAKE_CURRENT_BINARY_DIR}/keyword_extractor temp.cpp &&
+        rm temp.cpp
+    "
 )
 
 # Suppress Clang-specific warnings

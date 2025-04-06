@@ -10,13 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        build_type: [Release]
-        c_compiler: [clang-15]
-        cpp_compiler: [clang++-15]
-
     steps:
     - uses: actions/checkout@v4
 
@@ -27,23 +20,23 @@ jobs:
         sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-15 100
         sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-15 100
 
-    - name: Set reusable strings
-      id: strings
-      shell: bash
-      run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+    - name: Create build directory
+      run: mkdir build
 
-    - name: Configure CMake
-      run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S ${{ github.workspace }}
+    - name: Configure CMake with LLVM/Clang 15
+      working-directory: build
+      run: |
+        cmake .. \
+          -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm \
+          -DClang_DIR=/usr/lib/llvm-15/lib/cmake/clang \
+          -DCMAKE_C_COMPILER=clang-15 \
+          -DCMAKE_CXX_COMPILER=clang++-15 \
+          -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      working-directory: build
+      run: make
 
-    - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ctest --build-config ${{ matrix.build_type }}
+    - name: Run Tests
+      working-directory: build
+      run: ctest --output-on-failure
